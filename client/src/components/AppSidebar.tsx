@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'wouter';
-import { 
-  LayoutDashboard, 
-  Trello, 
-  Inbox, 
-  Puzzle, 
+import { useQuery } from '@tanstack/react-query'; // 1. Import useQuery
+import type { Settings as SettingsType } from '@shared/schema'; // 2. Import the type
+import {
+  LayoutDashboard,
+  Trello,
+  Inbox,
+  Puzzle,
   Settings,
-  Rocket
+  Rocket,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -30,6 +32,22 @@ const menuItems = [
 export function AppSidebar() {
   const [location] = useLocation();
 
+  // Fetch settings from the cache
+  const { data: settings } = useQuery<SettingsType>({
+    queryKey: ['/api/settings'],
+    // The staleTime line has been removed.
+  });
+
+  // Create a helper to get initials from the name
+  const getInitials = (name?: string) => {
+    const parts = (name || 'U').split(' ');
+    const first = parts[0]?.[0] || '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
+    return (first + last).toUpperCase();
+  };
+
+  const initials = getInitials(settings?.profileName);
+
   return (
     <Sidebar data-testid="sidebar">
       <SidebarHeader className="border-b border-sidebar-border p-6">
@@ -53,7 +71,7 @@ export function AppSidebar() {
               {menuItems.map((item) => {
                 const isActive = location === item.path;
                 const Icon = item.icon;
-                
+
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
@@ -77,13 +95,15 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 px-2 py-3">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
-            <span className="text-sm font-semibold text-white">AK</span>
+            <span className="text-sm font-semibold text-white">{initials}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-sidebar-foreground truncate" data-testid="text-username">
-              Ankit Kumar
+              {settings?.profileName || 'Loading...'}
             </p>
-            <p className="text-xs text-muted-foreground truncate">ankit@antriksh.com</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {settings?.profileEmail || '...'}
+            </p>
           </div>
         </div>
       </SidebarFooter>

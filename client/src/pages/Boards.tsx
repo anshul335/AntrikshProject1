@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import type { Task } from '@shared/schema';
+import { useSearchStore } from '@/lib/searchStore';
 
 const columns = [
   { id: 'todo', title: 'To Do', color: 'bg-muted' },
@@ -19,6 +20,11 @@ const columns = [
 export default function Boards() {
   const { toast } = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { searchTerm } = useSearchStore();
+
+  // 1. Define the specific status type from your Task schema
+  type TaskStatus = Task['status'];
+
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
     queryKey: ['/api/tasks'],
   });
@@ -29,7 +35,7 @@ export default function Boards() {
       await queryClient.cancelQueries({ queryKey: ['/api/tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['/api/tasks']);
       queryClient.setQueryData<Task[]>(['/api/tasks'], (old) =>
-        (old || []).filter((task) => task.id !== id)
+        (old || []).filter((task: Task) => task.id !== id)
       );
       return { previousTasks };
     },
@@ -54,13 +60,14 @@ export default function Boards() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    // 2. Use the specific TaskStatus type instead of 'string'
+    mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
       apiRequest('PUT', `/api/tasks/${id}`, { status }),
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, status }: { id: string; status: TaskStatus }) => {
       await queryClient.cancelQueries({ queryKey: ['/api/tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['/api/tasks']);
       queryClient.setQueryData<Task[]>(['/api/tasks'], (old) =>
-        (old || []).map((task) =>
+        (old || []).map((task: Task) =>
           task.id === id ? { ...task, status } : task
         )
       );
@@ -76,11 +83,25 @@ export default function Boards() {
   });
 
   const getTasksByStatus = (status: string) => {
-    return tasks.filter((task) => task.status === status);
+    const lowerCaseSearch = searchTerm.toLowerCase();
+
+    return tasks.filter((task) => {
+      const statusMatch = task.status === status;
+      if (!statusMatch) return false;
+      if (!searchTerm) return true;
+      const titleMatch = (task.title || '')
+        .toLowerCase()
+        .includes(lowerCaseSearch);
+      const descriptionMatch = (task.description || '')
+        .toLowerCase()
+        .includes(lowerCaseSearch);
+      return titleMatch || descriptionMatch;
+    });
   };
 
   const handleTaskClick = (task: Task) => {
-    const statusOrder = ['todo', 'in-progress', 'done'];
+    // 3. Type the statusOrder array to ensure nextStatus is TaskStatus
+    const statusOrder: TaskStatus[] = ['todo', 'in-progress', 'done'];
     const currentIndex = statusOrder.indexOf(task.status);
     const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
     updateStatusMutation.mutate({ id: task.id, status: nextStatus });
@@ -114,7 +135,7 @@ export default function Boards() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {columns.map((column, colIndex) => {
           const columnTasks = getTasksByStatus(column.id);
-          
+
           return (
             <motion.div
               key={column.id}
@@ -162,7 +183,9 @@ export default function Boards() {
                     ))
                   ) : (
                     <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-                      No tasks in this column
+                      {searchTerm
+                        ? 'No tasks match search'
+                        : 'No tasks in this column'}
                     </div>
                   )}
                 </div>

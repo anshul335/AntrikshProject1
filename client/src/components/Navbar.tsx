@@ -3,9 +3,12 @@ import { motion } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useSearchStore } from '@/lib/searchStore'; // <-- 1. Import the store
 
 export function Navbar() {
   const { darkMode, toggleDarkMode } = useTheme();
+  // 2. Get the state and setter function
+  const { searchTerm, setSearchTerm } = useSearchStore(); 
 
   return (
     <motion.header
@@ -25,6 +28,10 @@ export function Navbar() {
               placeholder="Search tasks, messages, or integrations..."
               className="w-full h-9 pl-10 pr-4 bg-muted/50 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
               data-testid="input-search"
+              // 3. Control the input value
+              value={searchTerm}
+              // 4. Update the store on change
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
