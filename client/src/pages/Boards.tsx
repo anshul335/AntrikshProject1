@@ -83,21 +83,34 @@ export default function Boards() {
   });
 
   const getTasksByStatus = (status: string) => {
-    const lowerCaseSearch = searchTerm.toLowerCase();
+  const lowerCaseSearch = searchTerm.toLowerCase();
 
-    return tasks.filter((task) => {
-      const statusMatch = task.status === status;
-      if (!statusMatch) return false;
-      if (!searchTerm) return true;
-      const titleMatch = (task.title || '')
-        .toLowerCase()
-        .includes(lowerCaseSearch);
-      const descriptionMatch = (task.description || '')
-        .toLowerCase()
-        .includes(lowerCaseSearch);
-      return titleMatch || descriptionMatch;
-    });
-  };
+  // Filter tasks by column status and search
+  const filteredTasks = tasks.filter((task) => {
+    const statusMatch = task.status === status;
+    if (!statusMatch) return false;
+    if (!searchTerm) return true;
+
+    const titleMatch = (task.title || "")
+      .toLowerCase()
+      .includes(lowerCaseSearch);
+    const descriptionMatch = (task.description || "")
+      .toLowerCase()
+      .includes(lowerCaseSearch);
+    return titleMatch || descriptionMatch;
+  });
+
+  // Define priority order (higher priority first)
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+
+  // Sort filtered tasks by priority descending
+  return filteredTasks.sort((a, b) => {
+    const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+    const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+    return priorityB - priorityA; // High → Low
+  });
+};
+
 
   const handleTaskClick = (task: Task) => {
     // 3. Type the statusOrder array to ensure nextStatus is TaskStatus
