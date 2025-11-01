@@ -57,7 +57,7 @@ export function AppSidebar() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-sidebar-foreground" data-testid="text-app-title">
-              Antriksh
+              Tracko
             </h1>
             <p className="text-xs text-muted-foreground">Dashboard</p>
           </div>
